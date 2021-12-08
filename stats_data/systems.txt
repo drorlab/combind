@@ -1,0 +1,48 @@
+Family	Protein Name	Gene Name	UNIPROT	CHEMBL
+GPCR A	5-hydroxytryptamine receptor 2B	5HT2B	P41595	CHEMBL1833
+GPCR A	Adenosine receptor A2a	A2AR	P29274	CHEMBL251
+GPCR A	Beta-1 adrenergic receptor	B1AR	P07700	CHEMBL213
+GPCR A	Beta-2 adrenergic receptor	B2AR	P07550	CHEMBL210
+GPCR A	Cannabinoid receptor 1	CB1R	P21554	CHEMBL218
+GPCR A	Melatonin receptor type 1A	MT1R	P48039	CHEMBL1945
+GPCR A	Muscarinic acetylcholine receptor M2	M2R	P08172	CHEMBL211
+GPCR C	Gamma-aminobutyric acid type B receptor subunit 1	GABBR1	Q9UBS5	CHEMBL2064
+GPCR C	Metabotropic glutamate receptor 2	MGLUR2	Q14416	CHEMBL5137
+GPCR C	Metabotropic glutamate receptor 3	MGLUR3	Q14832	CHEMBL2888
+GPCR C	Metabotropic glutamate receptor 5	MGLUR5	P41594	CHEMBL3227
+GPCR F	Smoothened homolog	SMO	Q99835	CHEMBL5971
+Ion channel	Glutamate receptor 2	GLU2	P19491	CHEMBL3503
+Ion channel	Glutamate receptor ionotropic, kainate 1	GLUK1	P22756	CHEMBL2919
+Ion channel	Glutamate receptor ionotropic, kainate 3	GLUK3	P42264	CHEMBL3744
+Ion channel	Glutamate receptor ionotropic, NMDA	GLUN1	Q05586-Q12879	CHEMBL1907604
+Transporter	Sodium-dependent dopamine transporter	DAT	Q7K4Y6	CHEMBL238
+Transporter	Sodium-dependent serotonin transporter	SERT	P31645	CHEMBL228
+Transporter	glucose transporter member 1	GLUT1	P11166	CHEMBL2535
+Nuclear Receptor	Androgen receptor	AR	P10275	CHEMBL1871
+Nuclear Receptor	Bile acid receptor	NR1H4	Q96RI1	CHEMBL2047
+Nuclear Receptor	Estrogen receptor	ER	P03372	CHEMBL206
+Nuclear Receptor	Glucocorticoid receptor	GR	P04150	CHEMBL2034
+Nuclear Receptor	Mineralocorticoid receptor	MR	P08235	CHEMBL1994
+Nuclear Receptor	Vitamin D3 receptor	VDR	P11473	CHEMBL1977
+Protease	Beta-secretase 1	BACE1	P56817	CHEMBL4822
+Protease	Cationic trypsin	P00760	P00760	CHEMBL3769
+Protease	Coagulation factor X	F10	P00742	CHEMBL244
+Protease	Prothrombin	F2	P00734	CHEMBL204
+Protease	Urokinase-type plasminogen activator	PLAU	P00749	CHEMBL3286
+Reductase	Aldo-keto reductase family 1 member B1	ALDR1	P15121	CHEMBL1900
+Reductase	Corticosteroid 11-beta-dehydrogenase isozyme 1	HSD11B1	P28845	CHEMBL4235
+Reductase	Dihydrofolate reductase	DHFR	P00374	CHEMBL202
+Reductase	Ribosyldihydronicotinamide dehydrogenase	NQO2	P16083	CHEMBL3959
+Receptor	Acetylcholine-binding protein	ACHP	P58154	CHEMBL6084
+Receptor	Sigma non-opioid intracellular receptor 1	SIGMAR1	Q99720	CHEMBL287
+Receptor	TGF-beta receptor type-1	TGFR1	P36897	CHEMBL4439
+Hydrolase	Bifunctional epoxide hydrolase 2	EPHX2	P34913	CHEMBL2409
+Hydrolase	Leukotriene A-4 hydrolase	LTA4H	P09960	CHEMBL4618
+Kinase	Cyclin-dependent kinase 2	CDK2	P24941	CHEMBL301
+Kinase	Mitogen-activated protein kinase 1	MAPK1	P28482	CHEMBL4040
+Elatase	Neutrophil elastase	ELANE	P08246	CHEMBL248
+Phosphorylase	Glycogen phosphorylase	PYGM	P00489	CHEMBL4696
+Phosphatase	Tyrosine-protein phosphatase non-receptor type 1	PTPN1	P18031	CHEMBL335
+Transcription factor	Bromodomain-containing protein 4	BRD4	O60885	CHEMBL1163125
+Chaperone	Heat shock protein HSP 90-alpha	HSP90AA	P07900	CHEMBL3880
+Phosphodiesterase	cAMP 3',5'-cyclic phosphodiesterase 10A	PDE10A	Q9Y233	CHEMBL4409
