@@ -15,15 +15,7 @@ IFP = {'rd1':    {'version'           : 'rd1',
                    'sb_dist_opt'       : 4.0,
                    'sb_dist_cut'       : 5.0,
                    'contact_scale_opt' : 1.25,
-                   'contact_scale_cut' : 1.75,
-                   'pipi_dist_cut'     : 8.0,
-                   'pipi_dist_opt'     : 7.0,
-                   'pipi_norm_norm_angle_cut'     : 30.0,
-                   'pipi_norm_centroid_angle_cut' : 45.0,
-                   'pipi_t_dist_cut': 6.0,
-                   'pipi_t_dist_opt': 5.0,
-                   'pipi_t_norm_norm_angle_cut': 60.0,
-                   'pipi_t_norm_centroid_angle_cut': 45.0},
+                   'contact_scale_cut' : 1.75,},
       }
 
 class Features:

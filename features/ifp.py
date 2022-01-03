@@ -76,7 +76,6 @@ class Molecule:
         self.is_protein = is_protein
         self.settings = settings
 
-        self.pipi = self.init_pipi()
         self.contacts = self.init_contacts()
         self.hbond_donors, self.hbond_acceptors = self.init_hbond()
         self.charged, self.charge_groups = self.init_saltbridge()
@@ -94,20 +93,6 @@ class Molecule:
             coord = np.vstack(coord)
             vdw = np.array(vdw)
         return coord, vdw, res_name, atom_name
-
-    def init_pipi(self):
-        rings = self.get_aromatic_rings()
-        centroids, normals, atom_name, res_name = [], [], [], []
-        for ring in rings:
-            centroids += [self.get_centroid(ring)]
-            normals += [self.get_normal(ring)]
-            res_name += [resname(self.mol.GetAtomWithIdx(ring[0]))]
-            atom_name += [','.join([atomname(self.mol.GetAtomWithIdx(r)) for r in ring])]
-        
-        if centroids:
-            centroids = np.vstack(centroids)
-            normals = np.vstack(normals)
-        return centroids, normals, res_name, atom_name
 
     def get_aromatic_rings(self):
         return [ring for ring in self.mol.GetRingInfo().AtomRings()
@@ -299,39 +284,6 @@ def contact_compute(protein, ligand, settings):
                       'vdw': vdw[i, j]}]
     return contacts
 
-def pipi_compute(protein, ligand, settings):
-    pipis = []
-    for prot_centroid, prot_normal, prot_res, prot_atom in zip(*protein.pipi):
-        for lig_centroid, lig_normal, lig_res, lig_atom in zip(*ligand.pipi):
-            displacement = prot_centroid-lig_centroid
-            dist = np.linalg.norm(displacement)
-
-            n1_n2 = angle_vector(prot_normal, lig_normal)
-            n1_centroid = angle_vector(prot_normal, displacement)
-            n2_centroid = angle_vector(lig_normal, displacement)
-
-            # Pi stack
-            if (dist < settings['pipi_dist_cut']
-                and n1_n2 < settings['pipi_norm_norm_angle_cut'] 
-                and n1_centroid < settings['pipi_norm_centroid_angle_cut']
-                and n2_centroid < settings['pipi_norm_centroid_angle_cut']):
-                pipis += [{'label': 'pipi',
-                           'protein_res': prot_res,
-                           'protein_atom': prot_atom,
-                           'ligand_atom': lig_atom,
-                           'dist': dist}]
-
-            # T stack
-            elif (dist < settings['pipi_t_dist_cut']
-                and settings['pipi_t_norm_norm_angle_cut'] < n1_n2
-                and (min(n1_centroid, n2_centroid) < settings['pipi_t_norm_centroid_angle_cut'])):
-                pipis += [{'label': 'pi-t',
-                           'protein_res': prot_res,
-                           'protein_atom': prot_atom,
-                           'ligand_atom': lig_atom,
-                           'dist': dist}]
-    return pipis
-
 ################################################################################
 # Compute residue-level scores.
 
@@ -358,15 +310,7 @@ def compute_scores(raw, settings):
     scores = []
     for label, group in raw.groupby('label'):
         group = group.copy()
-        if label == 'pipi':
-            group['score'] = _piecewise(group['dist'],
-                                        settings['pipi_dist_opt'],
-                                        settings['pipi_dist_cut'])
-        elif label == 'pi-t':
-            group['score'] = _piecewise(group['dist'],
-                                        settings['pipi_t_dist_opt'],
-                                        settings['pipi_t_dist_cut'])
-        elif label == 'contact':
+        if label == 'contact':
             group['score'] = _piecewise(group['dist'] / group['vdw'],
                                         settings['contact_scale_opt'],
                                         settings['contact_scale_cut'])
@@ -403,7 +347,6 @@ def fingerprint(protein, ligand, settings):
     fp  = hbond_compute(protein, ligand, settings)
     fp += saltbridge_compute(protein, ligand, settings)
     fp += contact_compute(protein, ligand, settings)
-    fp += pipi_compute(protein, ligand, settings)
     return pd.DataFrame.from_dict(fp)
 
 def fingerprint_poseviewer(input_file, poses, settings):
@@ -466,14 +409,6 @@ def ifp(settings, input_file, output_file, poses, convert=False):
 @click.option('--sb_dist_opt', default=4.0)
 @click.option('--contact_scale_cut', default=1.75)
 @click.option('--contact_scale_opt', default=1.50)
-@click.option('--pipi_dist_cut', default=8.0)
-@click.option('--pipi_dist_opt', default=7.0)
-@click.option('--pipi_norm_norm_angle_cut',  default=30.0)
-@click.option('--pipi_norm_centroid_angle_cut', default=45.0)
-@click.option('--pipi_t_dist_cut', default=6.0)
-@click.option('--pipi_t_dist_opt', default=5.0)
-@click.option('--pipi_t_norm_norm_angle_cut', default=60.0)
-@click.option('--pipi_t_norm_centroid_angle_cut', default=45.5)
 def main(input_file, output_file, poses, convert, **settings):
     ifp(settings, input_file, output_file, poses, convert)
 
