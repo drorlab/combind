@@ -218,20 +218,12 @@ def featurize(root, poseviewers, native, ifp_version, mcss_version,
 
     if screen:
         assert len(poseviewers) == 2
-        features.compute_pair_features(poseviewers[0],
-                                       pv2 = poseviewers[1],
+        features.compute_pair_features(poseviewers[:1],
+                                       pvs2 = poseviewers[1:],
                                        mcss=not no_mcss, shape=not no_shape)
     else:
-        features.compute_single_features(poseviewers, native_poses=native_poses)
-
-################################################################################
-
-@main.command()
-@click.argument('data_root')
-@click.argument('stats_root')
-def compute_statistics(data_root, stats_root):
-    from score.statistics import compute_stats
-    compute_stats(data_root, stats_root)
+        features.compute_pair_features(poseviewers,
+                                       mcss=not no_mcss, shape=not no_shape)
 
 ################################################################################
 
@@ -281,42 +273,61 @@ def pose_prediction(root, out, ligands, alpha, stats_root,
 
 @main.command()
 @click.argument('score-fname')
-@click.argument('gscore-fname')
-@click.option('--ifp-fname', default=None)
-@click.option('--mcss-fname', default=None)
-@click.option('--shape-fname', default=None)
+@click.argument('root')
 @click.option('--stats-root', default=stats_root)
 @click.option('--alpha', default=1.0)
-@click.option('--features', default='hbond,saltbridge,contact')
-def screen(score_fname, stats_root, gscore_fname, ifp_fname, mcss_fname,
-           shape_fname, alpha, features):
+@click.option('--features', default='shape,hbond,saltbridge,contact')
+def screen(score_fname, root, stats_root, alpha, features):
     """
     Run ComBind screening.
     """
     from score.screen import screen, load_features_screen
     from score.statistics import read_stats
 
-    weights = None
-
     features = features.split(',')
     stats = read_stats(stats_root, features)
-    single, raw = load_features_screen(
-        features, gscore_fname, ifp_fname, mcss_fname, shape_fname)
+    single, raw = load_features_screen(features, root)
 
-    combind_energy = screen(single, raw, stats, alpha, weights=weights)
+    combind_energy = screen(single, raw, stats, alpha)
     np.save(score_fname, combind_energy)
 
 ################################################################################
 
 @main.command()
 @click.argument('scores')
-@click.argument('pv-root')
-def extract_top_poses(scores, pv_root):
+@click.argument('original_pvs', nargs=-1)
+def extract_top_poses(scores, original_pvs):
     """
     Write top-scoring poses to a single file.
     """
-    from utils import extract_top_poses
-    extract_top_poses(scores, pv_root)
+    out = scores.replace('.csv', '_pv.maegz')
+    scores = pd.read_csv(scores).set_index('ID')
+
+    with StructureWriter(out) as writer:
+        with StructureReader(original_pvs[0]) as sts:
+            prot = next(sts)
+            writer.append(prot)
+
+        counts = {}
+        written = []
+        for pv in original_pvs:
+            with StructureReader(original_pvs[0]) as sts:
+                prot = next(sts)
+                for st in sts:
+                    name = st.title
+                    if name not in counts:
+                        counts[name] = 0
+                    else:
+                        # counts is zero indexed.
+                        counts[name] += 1
+
+                    if name in scores.index and scores.loc[name, 'POSE'] == counts[name]:
+                        writer.append(st)
+                        written += [name]
+
+        assert len(written) == len(scores), written
+        for name in scores.index:
+            assert name in written
 
 @main.command()
 @click.argument('pv')
@@ -340,56 +351,5 @@ def scores_to_csv(pv, out):
     """
     from score.screen import scores_to_csv
     scores_to_csv(pv, out)
-
-@main.command()
-@click.argument('poseviewer')
-@click.argument('score-fname')
-@click.argument('gscore-fname')
-@click.option('--ifp-fname', default=None)
-@click.option('--mcss-fname', default=None)
-@click.option('--shape-fname', default=None)
-@click.option('--stats-root', default=stats_root)
-@click.option('--alpha', default=1.0)
-@click.option('--features', default='hbond,saltbridge,contact')
-def screen_all(poseviewer, score_fname, stats_root, gscore_fname, ifp_fname, mcss_fname,
-               shape_fname, alpha, features):
-    cmd = ('combind screen {} {} '
-           '--ifp-fname {} '
-           '--mcss-fname {} '
-           '--shape-fname {} '
-           '--stats-root {} '
-           '--alpha {} '
-           '--features {}')
-    cmd = cmd.format(score_fname, gscore_fname, ifp_fname, mcss_fname, shape_fname,
-                     stats_root, alpha, features)
-    print(cmd)
-    os.system(cmd)
-
-    basename = score_fname.replace('.npy', '')
-
-    cmd = 'combind apply-scores {} {} {}_pv.maegz'
-    cmd = cmd.format(poseviewer, score_fname, basename)
-    print(cmd)
-    os.system(cmd)
-
-    cmd = '$SCHRODINGER/utilities/glide_sort -best_by_title -use_prop_d r_i_combind_score -o {0}_combind_pv.maegz {0}_pv.maegz'
-    cmd = cmd.format(basename)
-    print(cmd)
-    os.system(cmd)
-
-    cmd = '$SCHRODINGER/utilities/glide_sort -best_by_title -o {0}_glide_pv.maegz {0}_pv.maegz'
-    cmd = cmd.format(basename)
-    print(cmd)
-    os.system(cmd)
-
-    cmd = 'combind scores-to-csv {0}_combind_pv.maegz {0}_combind.csv'
-    cmd = cmd.format(basename)
-    print(cmd)
-    os.system(cmd)
-
-    cmd = 'combind scores-to-csv {0}_glide_pv.maegz {0}_glide.csv'
-    cmd = cmd.format(basename)
-    print(cmd)
-    os.system(cmd)
 
 main()

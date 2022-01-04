@@ -3,18 +3,12 @@ import pandas as pd
 from utils import np_load
 from schrodinger.structure import StructureReader, StructureWriter
 
-def load_features_screen(features, gscore_fname, ifp_fname,
-                         mcss_fname=None, shape_fname=None):
-    single = np.load(gscore_fname)
+def load_features_screen(features, root):
+    single = np.load(f'{root}/gscore1.npy')
 
     raw = {}
     for feature in features:
-        if feature == 'mcss':
-            raw['mcss'] = np_load(mcss_fname)
-        elif feature == 'shape':
-            raw['shape'] = np_load(shape_fname)
-        else:
-            raw[feature] = np_load(ifp_fname.format(feature))
+        raw[feature] = np_load(f'{root}/{feature}.npy')
     return single, raw
 
 def scores_to_csv(pv, out):
@@ -48,7 +42,7 @@ def apply_scores(pv, scores, out):
             st.property['r_i_combind_score'] = score
             writer.append(st)
 
-def screen(single, raw, stats, alpha, weights=None):
+def screen(single, raw, stats, alpha):
     energies = {}
     for feature in raw:
         _raw = raw[feature]
@@ -62,11 +56,8 @@ def screen(single, raw, stats, alpha, weights=None):
 
     n = pair_energy.shape[1]
 
-    if weights is None:
-        weights = np.ones(n)
-
     alpha /= 0.5 * n / (1 + (n-1)*0.5)
 
-    pair_energy = (pair_energy*weights.reshape(1, -1)).mean(axis=1)
+    pair_energy = pair_energy.mean(axis=1)
     combind_energy = pair_energy/alpha - single
     return combind_energy

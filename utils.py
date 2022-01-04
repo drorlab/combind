@@ -33,26 +33,6 @@ def get_pose(pv, pose):
         st = next(sts)
     return st
 
-def extract_top_poses(scores, pv_root):
-    """
-    Write top-scoring poses to a single file.
-    """
-    out = scores.replace('.csv', '_pv.maegz')
-
-    df = pd.read_csv(scores)
-    prot = get_pose(pv_path(pv_root, df.loc[0, 'ID']), -1)
-    sts = []
-    for _, ligand in df.iterrows():
-        pv = pv_path(pv_root, ligand['ID'])
-        sts += [get_pose(pv, ligand['POSE'])]
-
-    with StructureWriter(out) as writer:
-        writer.append(prot)
-        for st in sts:
-            if st.title[0] == '_':
-                st.title = st.title[1:]
-            writer.append(st)
-
 def basename(path):
     x = os.path.basename(path)
     x = os.path.splitext(x)[0]

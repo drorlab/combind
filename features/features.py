@@ -24,7 +24,7 @@ class Features:
     """
     def __init__(self, root, ifp_version='rd1', shape_version='pharm_max',
                  mcss_version='mcss16', max_poses=10000, pv_root=None,
-                 ifp_features=['hbond', 'saltbridge', 'contact', 'pipi', 'pi-t']):
+                 ifp_features=['hbond', 'saltbridge', 'contact']):
         self.root = os.path.abspath(root)
         if pv_root is None:
             self.pv_root = self.root + '/docking'
@@ -174,10 +174,10 @@ class Features:
             rmsds2, gscores2, poses2, names2, ifps2 = self.load_single_features(pvs2)
             out = self.path('rmsd2')
             np.save(out, rmsds2)
-            out = self.path(out, 'gscore2')
-            np.save(gscores2)
-            out = self.path(out, 'name2')
-            np.save(names2)
+            out = self.path('gscore2')
+            np.save(out, gscores2)
+            out = self.path('name2')
+            np.save(out, names2)
 
         if ifp:
             print('Computing interaction similarities.')
@@ -244,12 +244,14 @@ class Features:
         tanimotos = ifp_tanimoto(ifps1, ifps2, feature)
         np.save(out, tanimotos)
 
-    def compute_shape(self, pv1, pv2, out):
+    def compute_shape(self, poses1, poses2, out):
         from features.shape import shape
-        sims = shape(pv2, pv1, version=self.shape_version).T
+        # More efficient to have longer pose list provided as second argument.
+        # This only matters for screening.
+        sims = shape(poses2, poses1, version=self.shape_version).T
         np.save(out, sims)
 
-    def compute_mcss(self, pv1, pv2, out):
+    def compute_mcss(self, poses1, poses2, out):
         from features.mcss import mcss
-        rmsds = mcss(pv1, pv2, self.mcss_file)
+        rmsds = mcss(poses1, poses2, self.mcss_file)
         np.save(out, rmsds)
