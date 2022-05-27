@@ -148,6 +148,22 @@ combind apply-scores docking/library-to-grid/library-to-grid_pv.maegz screen.npy
 $SCHRODINGER/utilities/glide_sort -best_by_title -use_prop_d r_i_combind_score -o combind_pv.maegz combind_scores_added_pv.maegz
 ```
 
+## Benchmarking data
+
+See `stats_data/pdbs_for_benchmark.csv` for a list of PDBs used for benchmarking
+ComBind. The "query" column gives the PDB for the ligand being docked, the
+"grid" column gives the structure the query is docked to, and the "mcss<0.5"
+column indicates whether the query ligand shares a common substructure with 
+the co-crystal ligand in the structure being docked to.
+
+See `stats_data/structures.tar.gz` for the raw structural data used for
+benchmarking ComBind.
+
+See `stats_data/helper_best_affinity_diverse.csv` and `stats_data/helper_best_mcss.csv`
+for a list of the "helper ligands" used when benchmarking ComBind. Each row
+lists a query ligand and one helper ligand; all the entries for each query ligand
+should be aggregrated. (Most query ligands have 20 associated helper ligands.)
+
 ## Installation
 
 Start by cloning this git repository.
