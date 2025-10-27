@@ -1,3 +1,28 @@
+# RevBind
+This repository has a few changes to adapt [ComBind](https://github.com/drorlab/combind/) to support RevBind scores applied to structural models.
+
+
+### Using RevBind
+
+To score a structural model with **RevBind**, follow the  **ComBind** pose prediction for known binders instructions (below). 
+This include data curation, data preparation (including docking), and featurization of docked poses. 
+
+For this follow-up manuscript, the code was **minimally adapted** so that running pose prediction ComBind will output the **RevBind score** in the top lines of `out.csv`.
+
+```combind pose-prediction features out.csv --max-poses 1``` 
+
+Setting `--max-poses 1` uses only the top pose selected by the docking score (ComBind pose prediction is **not** run).
+
+
+By default, ComBind considers up to 100 poses.
+
+```combind pose-prediction features out.csv```
+
+When running full ComBind pose selection, the top line of `out.csv` will include a **RevBind score** that integrates the ComBind score with the **physics-based docking score**, as described in the manuscript.  
+
+Running ComBind with pose selection (`--max-poses 100`, the default) generally provides the most reliable results for scoring models and identifying the best poses.
+
+
 # ComBind
 
 ComBind integrates data-driven modeling and physics-based docking for
