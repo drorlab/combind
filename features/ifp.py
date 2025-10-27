@@ -356,6 +356,7 @@ def fingerprint_poseviewer(input_file, poses, settings):
         protein = Molecule(next(mols), True, settings)
         
         for i, ligand in enumerate(mols):
+            if i == poses: break
             if ligand is None:
                 print('ligand unreadable')
                 continue

@@ -12,20 +12,18 @@ from utils import *
 ###############################################################################
 
 # Defaults
-stats_root = os.environ["COMBINDHOME"] + "/stats_data/default"
-mcss_version = "mcss16"
-shape_version = "pharm_max"
-ifp_version = "rd1"
-
+stats_root = os.environ['COMBINDHOME']+'/stats_data/default'
+mcss_version = 'mcss16'
+shape_version = 'pharm_max'
+ifp_version = 'rd1'
 
 @click.group()
 def main():
     pass
 
-
 @main.command()
-@click.argument("struct", default="")
-@click.option("--grid-struct")
+@click.argument('struct', default='')
+@click.option('--grid-struct')
 def structprep(struct, grid_struct):
     """
     Prepare structures and make a docking grid.
@@ -69,36 +67,33 @@ def structprep(struct, grid_struct):
     from dock.struct_process import struct_process
     from dock.grid import make_grid
 
-    assert os.path.exists("structures"), "No structures directory."
+    assert os.path.exists('structures'), 'No structures directory.'
 
-    structs = sorted(glob("structures/raw/*_prot.mae*"))
-    structs = [struct.split("/")[-1].split("_prot")[0] for struct in structs]
-
+    structs = sorted(glob('structures/raw/*_prot.mae*'))
+    structs = [struct.split('/')[-1].split('_prot')[0] for struct in structs]
+    
     if not struct:
         struct = structs[0]
 
     if not grid_struct:
         grid_struct = struct
 
-    print(
-        f"Processing {structs}, aligning to {struct}, and creating a docking"
-        f" grid for {grid_struct}"
-    )
+    print(f'Processing {structs}, aligning to {struct}, and creating a docking'
+          f' grid for {grid_struct}')
 
     struct_process(structs)
     struct_align(struct, structs)
     struct_sort(structs)
     make_grid(grid_struct)
 
-
 @main.command()
-@click.argument("smiles")
-@click.option("--root", default="ligands")
-@click.option("--multiplex", is_flag=True)
-@click.option("--ligand-names", default="ID")
-@click.option("--ligand-smiles", default="SMILES")
-@click.option("--delim", default=",")
-@click.option("--processes", default=1)
+@click.argument('smiles')
+@click.option('--root', default='ligands')
+@click.option('--multiplex', is_flag=True)
+@click.option('--ligand-names', default='ID')
+@click.option('--ligand-smiles', default='SMILES')
+@click.option('--delim', default=',')
+@click.option('--processes', default=1)
 def ligprep(smiles, root, multiplex, ligand_names, ligand_smiles, delim, processes):
     """
     Prepare ligands for docking, from smiles.
@@ -109,8 +104,8 @@ def ligprep(smiles, root, multiplex, ligand_names, ligand_smiles, delim, process
 
     "smiles" should be a `delim` delimited file with columns "ligand-names"
     and "ligand-smiles".
-
-    "root" specifies where the processed ligands will be written.
+    
+    "root" specifies where the processed ligands will be written. 
 
     By default, an individual file will be made for each ligand. If multiplex is
     set, then only one file, containing all the ligands, will be produced.
@@ -118,50 +113,44 @@ def ligprep(smiles, root, multiplex, ligand_names, ligand_smiles, delim, process
     Multiprocessing is only supported for non-multiplexed mode.
     """
     from dock.ligprep import ligprep
-
     mkdir(root)
     ligands = pd.read_csv(smiles, sep=delim)
-    print("Prepping {} mols from {} in {}".format(len(ligands), smiles, root))
+    print('Prepping {} mols from {} in {}'.format(len(ligands), smiles, root))
 
     if multiplex:
         _name = os.path.splitext(os.path.basename(smiles))[0]
-        _root = f"{root}/{_name}"
-        _smiles = f"{_root}/{_name}.smi"
-        _mae = os.path.splitext(_smiles)[0] + ".maegz"
+        _root = f'{root}/{_name}'
+        _smiles = f'{_root}/{_name}.smi'
+        _mae = os.path.splitext(_smiles)[0] + '.maegz'
 
         if not os.path.exists(_mae):
             mkdir(_root)
-            with open(_smiles, "w") as fp:
+            with open(_smiles, 'w') as fp:
                 for _, ligand in ligands.iterrows():
-                    fp.write(
-                        "{} {}\n".format(ligand[ligand_smiles], ligand[ligand_names])
-                    )
+                    fp.write('{} {}\n'.format(ligand[ligand_smiles], ligand[ligand_names]))
             ligprep(_smiles)
 
     else:
         unfinished = []
         for _, ligand in ligands.iterrows():
             _name = ligand[ligand_names]
-            _root = f"{root}/{_name}"
-            _smiles = f"{_root}/{_name}.smi"
-            _mae = os.path.splitext(_smiles)[0] + ".maegz"
+            _root = f'{root}/{_name}'
+            _smiles = f'{_root}/{_name}.smi'
+            _mae = os.path.splitext(_smiles)[0] + '.maegz'
 
             if not os.path.exists(_mae):
                 mkdir(_root)
-                with open(_smiles, "w") as fp:
-                    fp.write(
-                        "{} {}\n".format(ligand[ligand_smiles], ligand[ligand_names])
-                    )
+                with open(_smiles, 'w') as fp:
+                    fp.write('{} {}\n'.format(ligand[ligand_smiles], ligand[ligand_names]))
                 unfinished += [(_smiles,)]
         mp(ligprep, unfinished, processes)
 
-
 @main.command()
-@click.argument("ligands", nargs=-1)
-@click.option("--root", default="docking")
-@click.option("--grid")
-@click.option("--screen", is_flag=True)
-@click.option("--processes", default=1)
+@click.argument('ligands', nargs=-1)
+@click.option('--root', default='docking')
+@click.option('--grid')
+@click.option('--screen', is_flag=True)
+@click.option('--processes', default=1)
 def dock(grid, root, ligands, screen, processes):
     """
     Dock "ligands" to "grid".
@@ -176,284 +165,79 @@ def dock(grid, root, ligands, screen, processes):
     from dock.dock import dock
 
     if grid is None:
-        grid = glob("structures/grids/*/*.zip")
+        grid = glob('structures/grids/*/*.zip')
         if grid:
             grid = grid[0]
         else:
-            print(
-                "No grids in default location (structures/grids), please specify path."
-            )
+            print('No grids in default location (structures/grids)'
+                  ', please specify path.')
             exit()
-    print(grid)
-    print(root)
-    grid_name = grid.split("/")[-2]
-    ligands = [os.path.abspath(lig) for lig in ligands if "nonames" not in lig]
+
+    ligands = [os.path.abspath(lig) for lig in ligands if 'nonames' not in lig]
     grid = os.path.abspath(grid)
     root = os.path.abspath(root)
 
     mkdir(root)
     unfinished = []
     for ligand in ligands:
-        name = "{}-to-{}".format(basename(ligand), grid_name)
-        _root = "{}/{}".format(root, name)
+        name = '{}-to-{}'.format(basename(ligand), basename(grid))
+        _root = '{}/{}'.format(root, name)
         unfinished += [(grid, ligand, _root, name, not screen)]
     mp(dock, unfinished, processes)
 
-
 ################################################################################
 
-
 @main.command()
-@click.argument("root")
-@click.argument("poseviewers", nargs=-1)
-@click.option("--native", default="structures/ligands/*_lig.mae")
-@click.option("--ifp-version", default=ifp_version)
-@click.option("--mcss-version", default=mcss_version)
-@click.option("--shape-version", default=shape_version)
-@click.option("--screen", is_flag=True)
-@click.option("--max-poses", default=100)
-@click.option("--no-mcss", is_flag=True)
-@click.option("--no-shape", is_flag=True)
-@click.option("--processes", default=1)
-def featurize(
-    root,
-    poseviewers,
-    native,
-    ifp_version,
-    mcss_version,
-    shape_version,
-    screen,
-    no_mcss,
-    no_shape,
-    processes,
-    max_poses,
-):
+@click.argument('root')
+@click.argument('poseviewers', nargs=-1)
+@click.option('--native', default='structures/ligands/*_lig.mae')
+@click.option('--ifp-version', default=ifp_version)
+@click.option('--mcss-version', default=mcss_version)
+@click.option('--shape-version', default=shape_version)
+@click.option('--screen', is_flag=True)
+@click.option('--max-poses', default=100)
+@click.option('--no-mcss', is_flag=True)
+@click.option('--no-shape', is_flag=True)
+@click.option('--processes', default=1)
+def featurize(root, poseviewers, native, ifp_version, mcss_version,
+              shape_version, screen, no_mcss, no_shape, processes, max_poses):
     from features.features import Features
 
     native_poses = {}
     for native_path in glob(native):
-        name = native_path.split("/")[-1].split("_lig")[0]
+        name = native_path.split('/')[-1].split('_lig')[0]
         with StructureReader(native_path) as sts:
             sts = list(sts)
         assert len(sts) == 1
         native_poses[name] = sts[0]
 
-    features = Features(
-        root,
-        ifp_version=ifp_version,
-        shape_version=shape_version,
-        mcss_version=mcss_version,
-        max_poses=max_poses,
-    )
+    features = Features(root, ifp_version=ifp_version, shape_version=shape_version,
+                        mcss_version=mcss_version, max_poses=max_poses)
 
     features.compute_single_features(poseviewers, native_poses=native_poses)
 
     if screen:
         assert len(poseviewers) == 2
-        features.compute_pair_features(
-            poseviewers[:1], pvs2=poseviewers[1:], mcss=not no_mcss, shape=not no_shape
-        )
+        features.compute_pair_features(poseviewers[:1],
+                                       pvs2 = poseviewers[1:],
+                                       mcss=not no_mcss, shape=not no_shape)
     else:
-        # features.compute_pair_features(poseviewers,ifp = False,
-        #                              mcss=not no_mcss, shape=False)
-        features.compute_pair_features(
-            poseviewers, mcss=not no_mcss, shape=not no_shape
-        )
-
-
-################################################################################
-@main.command()
-@click.argument("root")
-@click.argument("poseviewers", nargs=-1)
-@click.option("--native", default="structures/ligands/*_lig.mae")
-@click.option("--ifp-version", default=ifp_version)
-@click.option("--mcss-version", default=mcss_version)
-@click.option("--shape-version", default=shape_version)
-@click.option("--screen", is_flag=True)
-@click.option("--max-poses", default=100)
-@click.option("--no-mcss", is_flag=True)
-@click.option("--no-shape", is_flag=True)
-@click.option("--processes", default=1)
-def featurizemcss(
-    root,
-    poseviewers,
-    native,
-    ifp_version,
-    mcss_version,
-    shape_version,
-    screen,
-    no_mcss,
-    no_shape,
-    processes,
-    max_poses,
-):
-    from features.features import Features
-
-    native_poses = {}
-    for native_path in glob(native):
-        name = native_path.split("/")[-1].split("_lig")[0]
-        with StructureReader(native_path) as sts:
-            sts = list(sts)
-        assert len(sts) == 1
-        native_poses[name] = sts[0]
-
-    features = Features(
-        root,
-        ifp_version=ifp_version,
-        shape_version=shape_version,
-        mcss_version=mcss_version,
-        max_poses=max_poses,
-    )
-
-    features.compute_pair_features(poseviewers, mcss=True, shape=False, ifp=False)
-
-
-@main.command()
-@click.argument("root")
-@click.argument("poseviewers", nargs=-1)
-@click.option("--native", default="structures/ligands/*_lig.mae")
-@click.option("--ifp-version", default=ifp_version)
-@click.option("--mcss-version", default=mcss_version)
-@click.option("--shape-version", default=shape_version)
-@click.option("--screen", is_flag=True)
-@click.option("--max-poses", default=100)
-@click.option("--no-mcss", is_flag=True)
-@click.option("--no-shape", is_flag=True)
-@click.option("--processes", default=1)
-@click.option("--version", default="v1")
-def redoIFP(
-    root,
-    poseviewers,
-    native,
-    ifp_version,
-    mcss_version,
-    shape_version,
-    screen,
-    no_mcss,
-    no_shape,
-    processes,
-    max_poses,
-    version,
-):
-    from features.features import Features
-
-    features = Features(
-        root,
-        ifp_version=ifp_version,
-        shape_version=shape_version,
-        mcss_version=mcss_version,
-        max_poses=max_poses,
-    )
-
-    rmsds1, gscores1, poses1, names1, ifps1 = features.load_single_features(poseviewers)
-
-    for feature in self.ifp_features:
-        out = feature.path(feature).replace(
-            ".npy", "poses_{}_v_{}.npy".format(max_poses, version)
-        )
-        feature.compute_ifp_pair_version(ifps1, ifps2, feature, out, version)
-
+        features.compute_pair_features(poseviewers,
+                                       mcss=not no_mcss, shape=not no_shape)
 
 ################################################################################
 
-
 @main.command()
-@click.argument("root")
-@click.argument("poseviewers", nargs=-1)
-@click.option("--native", default="structures/ligands/*_lig.mae")
-@click.option("--ifp-version", default=ifp_version)
-@click.option("--mcss-version", default=mcss_version)
-@click.option("--shape-version", default=shape_version)
-@click.option("--screen", is_flag=True)
-@click.option("--max-poses", default=100)
-@click.option("--no-mcss", is_flag=True)
-@click.option("--no-shape", is_flag=True)
-@click.option("--processes", default=1)
-def rmsd(
-    root,
-    poseviewers,
-    native,
-    ifp_version,
-    mcss_version,
-    shape_version,
-    screen,
-    no_mcss,
-    no_shape,
-    processes,
-    max_poses,
-):
-    from features.features import Features
-
-    native_poses = {}
-    for native_path in glob(native):
-        print(native_path)
-        name = native_path.split("/")[-1].split("_lig")[0]
-        print(name)
-        with StructureReader(native_path) as sts:
-            sts = list(sts)
-        assert len(sts) == 1
-        native_poses[name] = sts[0]
-
-    features = Features(
-        root,
-        ifp_version=ifp_version,
-        shape_version=shape_version,
-        mcss_version=mcss_version,
-        max_poses=max_poses,
-    )
-
-    print("Computing RMSDs to native poses")
-    for pv in poseviewers:
-        print(pv)
-        out = features.path("rmsd", pv=pv)
-        print(out)
-        # if not os.path.exists(out):
-        features.compute_rmsd(pv, native_poses, out)
-
-
-@main.command()
-@click.argument("root")
-@click.argument("poseviewers", nargs=-1)
-# @click.option('--native', default='structures/ligands/*_lig.mae')
-@click.option("--ifp-version", default=ifp_version)
-@click.option("--mcss-version", default=mcss_version)
-@click.option("--shape-version", default=shape_version)
-# @click.option('--screen', is_flag=True)
-@click.option("--max-poses", default=100)
-# @click.option('--no-mcss', is_flag=True)
-# @click.option('--no-shape', is_flag=True)
-@click.option("--processes", default=1)
-def update_rmsds(
-    root, poseviewers, ifp_version, shape_version, mcss_version, max_poses, processes
-):
-    from features.features import Features
-
-    features = Features(
-        root,
-        ifp_version=ifp_version,
-        shape_version=shape_version,
-        mcss_version=mcss_version,
-        max_poses=max_poses,
-    )
-    features.compute_pair_features(poseviewers, ifp=False, shape=False, mcss=False)
-
-
-################################################################################
-
-
-@main.command()
-@click.argument("root")
-@click.argument("out")
-@click.argument("ligands", nargs=-1)
-@click.option("--features", default="shape,mcss,hbond,saltbridge,contact")
-@click.option("--alpha", default=1.0)
-@click.option("--stats-root", default=stats_root)
-@click.option("--restart", default=500)
-@click.option("--max-iterations", default=1000)
-@click.option("--max-poses", default=100)
-def pose_prediction(
-    root, out, ligands, alpha, stats_root, features, restart, max_iterations, max_poses
-):
+@click.argument('root')
+@click.argument('out')
+@click.argument('ligands', nargs=-1)
+@click.option('--features', default='shape,mcss,hbond,saltbridge,contact')
+@click.option('--alpha', default=1.0)
+@click.option('--stats-root', default=stats_root)
+@click.option('--restart', default=500)
+@click.option('--max-iterations', default=1000)
+def pose_prediction(root, out, ligands, alpha, stats_root,
+                    features, restart, max_iterations):
     """
     Run ComBind pose prediction.
     """
@@ -461,68 +245,38 @@ def pose_prediction(
     from score.statistics import read_stats
     from features.features import Features
 
-    features = features.split(",")
+    features = features.split(',')
 
-    protein = Features(root, max_poses=max_poses)
-
+    protein = Features(root)
     protein.load_features()
 
     if not ligands:
-        print(protein.raw)
-        ligands = set(protein.raw["name1"])
-    else:
-        ligands = ligands[0][:-1].split(",")
+        ligands = set(protein.raw['name1'])
     ligands = sorted(ligands)
+
     data = protein.get_view(ligands, features)
     stats = read_stats(stats_root, features)
+    
+    ps = PosePrediction(ligands, features, data, stats, alpha)
+    best_poses = ps.max_posterior(max_iterations, restart)
 
-    ps = PosePrediction(ligands, features, data, stats, alpha, max_poses)
-    best_poses, score, glidescore = ps.max_posterior(
-        max_iterations, restart
-    )  # return docking score and running score
-    with open(out, "w") as fp:
-        if max_poses <= 1:
-            fp.write(
-                f"REVBIND SCORE OF MODEL (no Glide Score): {(score - glidescore) / len(best_poses)}"
-            )
-        else:
-            fp.write(
-                f"REVBIND SCORE OF MODEL RUN WITH COMBIND (includes Glide score): {score / len(best_poses)}"
-            )
-
-        fp.write(
-            "best total score: {}__ docking_score:{}\n".format(score, glidescore)
-        )  # return docking score and score here at top of file!
-
-        fp.write("ID,POSE,COMBIND_RMSD,GLIDE_RMSD,BEST_RMSD\n")
+    with open(out, 'w') as fp:
+        fp.write('ID,POSE,COMBIND_RMSD,GLIDE_RMSD,BEST_RMSD\n')
         for ligand in best_poses:
-            rmsds = data["rmsd"][ligand]
+            rmsds = data['rmsd'][ligand]
             grmsd = rmsds[0]
             crmsd = rmsds[best_poses[ligand]]
             brmsd = min(rmsds)
-            fp.write(
-                ",".join(
-                    map(
-                        str,
-                        [
-                            ligand.replace("_pv", ""),
-                            best_poses[ligand],
-                            crmsd,
-                            grmsd,
-                            brmsd,
-                        ],
-                    )
-                )
-                + "\n"
-            )
-
+            fp.write(','.join(map(str, [ligand.replace('_pv', ''),
+                                        best_poses[ligand],
+                                        crmsd, grmsd, brmsd]))+ '\n')
 
 @main.command()
-@click.argument("score-fname")
-@click.argument("root")
-@click.option("--stats-root", default=stats_root)
-@click.option("--alpha", default=1.0)
-@click.option("--features", default="shape,hbond,saltbridge,contact")
+@click.argument('score-fname')
+@click.argument('root')
+@click.option('--stats-root', default=stats_root)
+@click.option('--alpha', default=1.0)
+@click.option('--features', default='shape,hbond,saltbridge,contact')
 def screen(score_fname, root, stats_root, alpha, features):
     """
     Run ComBind screening.
@@ -530,26 +284,24 @@ def screen(score_fname, root, stats_root, alpha, features):
     from score.screen import screen, load_features_screen
     from score.statistics import read_stats
 
-    features = features.split(",")
+    features = features.split(',')
     stats = read_stats(stats_root, features)
     single, raw = load_features_screen(features, root)
 
     combind_energy = screen(single, raw, stats, alpha)
     np.save(score_fname, combind_energy)
 
-
 ################################################################################
 
-
 @main.command()
-@click.argument("scores")
-@click.argument("original_pvs", nargs=-1)
+@click.argument('scores')
+@click.argument('original_pvs', nargs=-1)
 def extract_top_poses(scores, original_pvs):
     """
     Write top-scoring poses to a single file.
     """
-    out = scores.replace(".csv", "_pv.maegz")
-    scores = pd.read_csv(scores).set_index("ID")
+    out = scores.replace('.csv', '_pv.maegz')
+    scores = pd.read_csv(scores).set_index('ID')
 
     with StructureWriter(out) as writer:
         with StructureReader(original_pvs[0]) as sts:
@@ -569,10 +321,7 @@ def extract_top_poses(scores, original_pvs):
                         # counts is zero indexed.
                         counts[name] += 1
 
-                    if (
-                        name in scores.index
-                        and scores.loc[name, "POSE"] == counts[name]
-                    ):
+                    if name in scores.index and scores.loc[name, 'POSE'] == counts[name]:
                         writer.append(st)
                         written += [name]
 
@@ -580,41 +329,27 @@ def extract_top_poses(scores, original_pvs):
         for name in scores.index:
             assert name in written
 
-
 @main.command()
-@click.argument("pv")
-@click.argument("scores")
-@click.argument("out", default=None)
+@click.argument('pv')
+@click.argument('scores')
+@click.argument('out', default=None)
 def apply_scores(pv, scores, out):
     """
     Add ComBind screening scores to a poseviewer.
     """
     from score.screen import apply_scores
-
     if out is None:
-        out = pv.replace("_pv.maegz", "_combind_pv.maegz")
+        out = pv.replace('_pv.maegz', '_combind_pv.maegz')
     apply_scores(pv, scores, out)
 
-
 @main.command()
-@click.argument("pv")
-# @click.argument('out', default=None)
-def scores_to_csv_glide_only(pv):
+@click.argument('pv')
+@click.argument('out', default=None)
+def scores_to_csv(pv, out):
     """
-    Write docking a scores to text.
+    Write docking and ComBind scores to text.
     """
-    titles, glide, combind = [], [], []
-    with StructureReader(pv) as reader:
-        next(reader)
-        for st in reader:
-            titles += [st.title]
-            glide += [st.property["r_i_docking_score"]]
-    df = pd.DataFrame(np.vstack([titles, glide]).T, columns=["ID", "GLIDE"])
-    out = None
-    if out == None:
-        out = pv.replace(".maegz", "_glide_results.csv")
-    df.to_csv(out, index=False)
+    from score.screen import scores_to_csv
+    scores_to_csv(pv, out)
 
-
-if __name__ == "__main__":
-    main()
+main()
