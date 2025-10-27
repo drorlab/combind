@@ -15,7 +15,8 @@ class PosePrediction:
     single (np.array, # ligands)
     pair (np.array, # ligands x # ligands x max_poses x max_poses)
     """
-    def __init__(self, ligands, features, data, stats, alpha):
+
+    def __init__(self, ligands, features, data, stats, alpha, max_poses):
         self.ligands = ligands
         self.features = features
         self.data = data
@@ -23,6 +24,8 @@ class PosePrediction:
         self.alpha = float(alpha)
 
         self.max_poses = self._get_max_poses()
+        if max_poses < self.max_poses:
+            self.max_poses = max_poses
         self.single = self._get_single()
         self.pair = self._get_pair()
 
@@ -30,7 +33,7 @@ class PosePrediction:
         """
         Get largest number of poses present for any ligand.
         """
-        return max(len(self.data['gscore'][ligand]) for ligand in self.ligands)
+        return max(len(self.data["gscore"][ligand]) for ligand in self.ligands)
 
     def _get_single(self):
         """
@@ -38,7 +41,7 @@ class PosePrediction:
 
         * Scale docking scores by - self.alpha *
         """
-        single = [self.data['gscore'][ligand] for ligand in self.ligands]
+        single = [self.data["gscore"][ligand] for ligand in self.ligands]
         single = [self.pad(x, self.max_poses) for x in single]
         single = np.vstack(single)
         single *= -self.alpha
@@ -54,21 +57,24 @@ class PosePrediction:
 
         Sum over feature types to get a single energy term for each pose pair.
         """
-        pair = np.zeros((len(self.ligands), len(self.ligands),
-                         self.max_poses, self.max_poses))
+        pair = np.zeros(
+            (len(self.ligands), len(self.ligands), self.max_poses, self.max_poses)
+        )
         for i, ligand1 in enumerate(self.ligands):
-            for j, ligand2 in enumerate(self.ligands[i+1:]):
-                j += i+1
+            for j, ligand2 in enumerate(self.ligands[i + 1 :]):
+                j += i + 1
                 for feature in self.features:
                     stats = self.stats[feature]
                     raw = self.data[feature][(ligand1, ligand2)]
 
-                    if raw[0, 0] == float('inf'):
+                    if raw[0, 0] == float("inf"):
                         # Features should either all be tehre or all be absent.
-                        assert np.all(raw == float('inf'))
+                        assert np.all(raw == float("inf"))
                         continue
 
-                    energy = np.log(stats['native'](raw)) - np.log(stats['reference'](raw))
+                    energy = np.log(stats["native"](raw)) - np.log(
+                        stats["reference"](raw)
+                    )
                     energy = self.pad(energy, self.max_poses, self.max_poses)
                     pair[i, j] += energy
                     pair[j, i] += energy.T
@@ -86,23 +92,21 @@ class PosePrediction:
         if len(self.ligands) == 1:
             return {self.ligands[0]: 0}
 
-        best_score, best_poses = -float('inf'), None
+        best_score, best_poses, best_dock_score = -float("inf"), None, -float("inf")
         for i in range(restart):
             if i == 0:
                 poses = {lig: 0 for lig in self.ligands}
             else:
-                poses = {lig: np.random.randint(self.max_poses)
-                         for lig in self.ligands}
-
+                poses = {lig: np.random.randint(self.max_poses) for lig in self.ligands}
             poses = self.optimize_poses(poses, max_iterations)
-            score = self.log_posterior(poses)
+            score, dock_score = self.log_posterior(poses)
             if score > best_score:
                 best_score = score
+                best_dock_score = dock_score
                 best_poses = poses.copy()
 
-            print(poses)
-            print('run {}, score {}'.format(i, score))
-        return best_poses
+            print("run {}, score {} gscore {}".format(i, score, best_dock_score))
+        return best_poses, best_score, best_dock_score
 
     def optimize_poses(self, poses, max_iterations):
         """
@@ -110,7 +114,7 @@ class PosePrediction:
         "poses".
 
         poses ({ligand_name: current pose number, })
-        max_iterations (int): 
+        max_iterations (int):
         """
         for _ in range(max_iterations):
             update = False
@@ -123,7 +127,7 @@ class PosePrediction:
             if not update:
                 break
         else:
-            print('Maximum iteractions reached.')
+            print("Maximum iteractions reached.")
         return poses
 
     def partial_log_posterior(self, poses, query):
@@ -133,9 +137,9 @@ class PosePrediction:
         poses ({ligand_name: current pose number, })
         query (ligand_name)
         """
-        iposes = {self.ligands.index(lig): pose
-                  for lig, pose in poses.items()
-                  if lig != query}
+        iposes = {
+            self.ligands.index(lig): pose for lig, pose in poses.items() if lig != query
+        }
         iquery = self.ligands.index(query)
 
         plp = 0
@@ -152,25 +156,26 @@ class PosePrediction:
         """
         iposes = [(self.ligands.index(lig), pose) for lig, pose in poses.items()]
         lp = 0
+        lp2 = 0
         for lig, pose in iposes:
             lp += self.single[lig, pose]
-
+            lp2 += self.single[lig, pose]  # summed docking score
         for i, (lig1, pose1) in enumerate(iposes):
-            for lig2, pose2 in iposes[i+1:]:
-                lp += self.pair[lig1, lig2, pose1, pose2] / (len(poses)-1)
-        return lp
+            for lig2, pose2 in iposes[i + 1 :]:
+                lp += self.pair[lig1, lig2, pose1, pose2] / (len(poses) - 1)
+        return lp, lp2
 
-    def pad(self, x, shape1, shape2=0, C=float('inf')):
+    def pad(self, x, shape1, shape2=0, C=float("inf")):
         """
         Expand array to ("shape1",) if 1D or ("shape1", "shape2") if 2D
         and fill missing values with "C".
         """
         if len(x.shape) == 1:
-            y = np.zeros(shape1)+C
-            y[:x.shape[0]] = x[:shape1]
+            y = np.zeros(shape1) + C
+            y[: x.shape[0]] = x[:shape1]
         elif len(x.shape) == 2:
             y = np.zeros((shape1, shape2))
-            y[:x.shape[0], :x.shape[1]] = x[:shape1, :shape2]
+            y[: x.shape[0], : x.shape[1]] = x[:shape1, :shape2]
         else:
             assert False
         return y

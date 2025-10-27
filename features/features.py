@@ -6,104 +6,121 @@ from schrodinger.structure import StructureReader
 from schrodinger.structutils.rmsd import ConformerRmsd
 from utils import basename, mp, mkdir, np_load
 
-IFP = {'rd1':    {'version'           : 'rd1',
-                   'level'             : 'residue',
-                   'hbond_dist_opt'    : 2.5,
-                   'hbond_dist_cut'    : 3.0,
-                   'hbond_angle_opt'   : 60.0,
-                   'hbond_angle_cut'   : 90.0,
-                   'sb_dist_opt'       : 4.0,
-                   'sb_dist_cut'       : 5.0,
-                   'contact_scale_opt' : 1.25,
-                   'contact_scale_cut' : 1.75,},
-      }
+IFP = {
+    "rd1": {
+        "version": "rd1",
+        "level": "residue",
+        "hbond_dist_opt": 2.5,
+        "hbond_dist_cut": 3.0,
+        "hbond_angle_opt": 60.0,
+        "hbond_angle_cut": 90.0,
+        "sb_dist_opt": 4.0,
+        "sb_dist_cut": 5.0,
+        "contact_scale_opt": 1.25,
+        "contact_scale_cut": 1.75,
+    },
+}
+
 
 class Features:
     """
     Organize feature computation and loading.
     """
-    def __init__(self, root, ifp_version='rd1', shape_version='pharm_max',
-                 mcss_version='mcss16', max_poses=10000, pv_root=None,
-                 ifp_features=['hbond', 'saltbridge', 'contact']):
+
+    def __init__(
+        self,
+        root,
+        ifp_version="rd1",
+        shape_version="pharm_max",
+        mcss_version="mcss16",
+        max_poses=10000,
+        pv_root=None,
+        ifp_features=["hbond", "saltbridge", "contact"],
+    ):
         self.root = os.path.abspath(root)
         if pv_root is None:
-            self.pv_root = self.root + '/docking'
+            self.pv_root = self.root + "/docking"
 
         self.ifp_version = ifp_version
         self.shape_version = shape_version
         self.mcss_version = mcss_version
-        self.mcss_file = '{}/features/{}.typ'.format(os.environ['COMBINDHOME'], mcss_version)
+        self.mcss_file = "{}/features/{}.typ".format(
+            os.environ["COMBINDHOME"], mcss_version
+        )
         self.max_poses = max_poses
         self.ifp_features = ifp_features
 
         self.raw = {}
 
-    def path(self, name, base=False, pv=None, pv2=None):
+    def path(self, name, base=False, pv=None, pv2=None, v=""):
         if base:
-            return '{}/{}'.format(self.root, name)
+            return "{}/{}".format(self.root, name)
 
-        if self.pv_root != self.root+'/docking':
+        if self.pv_root != self.root + "/docking":
             if pv1 is not None:
-                pv = pv.replace(self.pv_root), self.root+'/single'
+                pv = pv.replace(self.pv_root), self.root + "/single"
             if pv2 is not None:
-                pv2 = pv2.replace(self.pv_root), self.root+'/single'
+                pv2 = pv2.replace(self.pv_root), self.root + "/single"
 
         # single features
-        if name == 'rmsd':
-            return pv.replace('_pv.maegz', '_rmsd.npy')
-        elif name == 'gscore':
-            return pv.replace('_pv.maegz', '_gscore.npy')
-        elif name == 'name':
-            return pv.replace('_pv.maegz', '_name.npy')
-        elif name == 'ifp':
-            suffix = '_ifp_{}.csv'.format(self.ifp_version)
-            return pv.replace('_pv.maegz', suffix)
+        if name == "rmsd":
+            return pv.replace("_pv.maegz", "_rmsd.npy")
+        elif name == "gscore":
+            return pv.replace("_pv.maegz", "_gscore.npy")
+        elif name == "name":
+            return pv.replace("_pv.maegz", "_name.npy")
+        elif name == "ifp":
+            suffix = "_ifp_{}.csv".format(self.ifp_version)
+            return pv.replace("_pv.maegz", suffix)
 
         # pair features
-        elif name == 'shape':
-            return f'{self.root}/shape.npy'
-        elif name == 'mcss':
-            return f'{self.root}/mcss.npy'
+        elif name == "shape":
+            return f"{self.root}/shape.npy"
+        elif name == "mcss":
+            return f"{self.root}/mcss.npy"
         else:
-            return f'{self.root}/{name}.npy'
+            return f"{self.root}/{name}{v}.npy"
 
     def load_features(self):
-        paths = glob(f'{self.root}/*.npy')
+        paths = glob(f"{self.root}/*.npy")
+        print(paths)
         for path in paths:
-            name = path.split('/')[-1][:-4]
+            print(path)
+            name = path.split("/")[-1][:-4]
             self.raw[name] = np.load(path)
 
     def get_view(self, ligands, features):
-        """
-        """
+        """ """
         data = {}
-        data['gscore'] = {}
-        data['rmsd'] = {}
+        data["gscore"] = {}
+        data["rmsd"] = {}
         for ligand in ligands:
-            mask = self.raw['name1'] == ligand
+            mask = self.raw["name1"] == ligand
             assert sum(mask)
-            data['gscore'][ligand] = self.raw['gscore1'][mask]
-            data['rmsd'][ligand] = self.raw['rmsd1'][mask]
+            data["gscore"][ligand] = self.raw["gscore1"][mask]
+            data["rmsd"][ligand] = self.raw["rmsd1"][mask]
 
         for feature in features:
             data[feature] = {}
             for i, ligand1 in enumerate(ligands):
-                for ligand2 in ligands[i+1:]:
-                    mask1 = self.raw['name1'] == ligand1
-                    mask2 = self.raw['name1'] == ligand2
-                    data[feature][(ligand1, ligand2)] = self.raw[feature][mask1, :][:, mask2]
+                for ligand2 in ligands[i + 1 :]:
+                    mask1 = self.raw["name1"] == ligand1
+                    mask2 = self.raw["name1"] == ligand2
+                    data[feature][(ligand1, ligand2)] = self.raw[feature][mask1, :][
+                        :, mask2
+                    ]
 
         return data
 
     def load_single_features(self, pvs, ligands=None):
         rmsds, gscores, poses, names, ifps = [], [], [], [], []
         for pv in pvs:
-            _rmsds = np.load(self.path('rmsd', pv=pv))
-            _gscores = np.load(self.path('gscore', pv=pv))
-            _names = np.load(self.path('name', pv=pv))
+            _rmsds = np.load(self.path("rmsd", pv=pv))
+            _gscores = np.load(self.path("gscore", pv=pv))
+            _names = np.load(self.path("name", pv=pv))
 
-            _ifps = pd.read_csv(self.path('ifp', pv=pv))
-            _ifps = [_ifps.loc[_ifps.pose==p] for p in range(max(_ifps.pose)+1)]
+            _ifps = pd.read_csv(self.path("ifp", pv=pv))
+            _ifps = [_ifps.loc[_ifps.pose == p] for p in range(max(_ifps.pose) + 1)]
 
             with StructureReader(pv) as sts:
                 protein = next(sts)
@@ -111,8 +128,9 @@ class Features:
 
             keep = []
             for i in range(len(_names)):
-                if ((ligands == None or (_names[i] in ligands))
-                    and sum(_names[:i] == _names[i]) < self.max_poses):
+                if (ligands == None or (_names[i] in ligands)) and sum(
+                    _names[:i] == _names[i]
+                ) < self.max_poses:
                     keep += [i]
             rmsds += [_rmsds[keep]]
             gscores += [_gscores[keep]]
@@ -134,66 +152,81 @@ class Features:
 
         pvs = [os.path.abspath(pv) for pv in pvs]
 
-        print('Extracting glide scores.')
+        print("Extracting glide scores.")
         for pv in pvs:
-            out = self.path('gscore', pv=pv)
+            out = self.path("gscore", pv=pv)
             if not os.path.exists(out):
                 self.compute_gscore(pv, out)
 
-        print('Extracting names.')
+        print("Extracting names.")
         for pv in pvs:
-            out = self.path('name', pv=pv)
+            out = self.path("name", pv=pv)
             if not os.path.exists(out):
                 self.compute_name(pv, out)
 
-        print('Computing RMSDs to native poses')
+        print("Computing RMSDs to native poses")
         for pv in pvs:
-            out = self.path('rmsd', pv=pv)
+            out = self.path("rmsd", pv=pv)
             if not os.path.exists(out):
                 self.compute_rmsd(pv, native_poses, out)
 
-        print('Computing interaction fingerprints.')
+        print("Computing interaction fingerprints.")
         for pv in pvs:
-            out = self.path('ifp', pv=pv)
+            out = self.path("ifp", pv=pv)
             if not os.path.exists(out):
                 self.compute_ifp(pv, out)
+
+
 
     def compute_pair_features(self, pvs, pvs2=None, ifp=True, shape=True, mcss=True):
         mkdir(self.root)
         rmsds1, gscores1, poses1, names1, ifps1 = self.load_single_features(pvs)
-        out = self.path('rmsd1')
-        np.save(out, rmsds1)
-        out = self.path('gscore1')
-        np.save(out, gscores1)
-        out = self.path('name1')
-        np.save(out, names1)
+        # exclude these ligands, they cause schrodinger mcss issues
+        # indexofbadligs = np.where(~names1.isin(["14964717", "9824829"])) #Not sure why these ligands caused some mcss issues
+        out = self.path("rmsd1")
+        if True or not os.path.exists(out):
+            np.save(out, rmsds1)
+        out = self.path("gscore1")
+        if True or not os.path.exists(out):
+            np.save(out, gscores1)
+        out = self.path("name1")
+        if True or not os.path.exists(out):
+            np.save(out, names1)
         if pvs2 == None:
-            (rmsds2, gscores2, poses2, names2, ifps2
-                ) = rmsds1, gscores1, poses1, names1, ifps1
+            (rmsds2, gscores2, poses2, names2, ifps2) = (
+                rmsds1,
+                gscores1,
+                poses1,
+                names1,
+                ifps1,
+            )
         else:
             rmsds2, gscores2, poses2, names2, ifps2 = self.load_single_features(pvs2)
-            out = self.path('rmsd2')
+            out = self.path("rmsd2")
             np.save(out, rmsds2)
-            out = self.path('gscore2')
+            out = self.path("gscore2")
             np.save(out, gscores2)
-            out = self.path('name2')
+            out = self.path("name2")
             np.save(out, names2)
 
         if ifp:
-            print('Computing interaction similarities.')
+            print("Computing interaction similarities.")
             for feature in self.ifp_features:
-                out = self.path(feature)
-                self.compute_ifp_pair(ifps1, ifps2,  feature, out)
+                out = self.path(feature, v="")
+                if not os.path.exists(out):
+                    self.compute_ifp_pair(ifps1, ifps2, feature, out)
 
         if shape:
-            print('Computing shape similarities.')
-            out = self.path('shape')
-            self.compute_shape(poses1, poses2, out)
+            print("Computing shape similarities.")
+            out = self.path("shape")
+            if not os.path.exists(out):
+                self.compute_shape(poses1, poses2, out)
 
         if mcss:
-            print('Computing mcss similarities.')
-            out = self.path('mcss')
-            self.compute_mcss(poses1, poses2, out)
+            print("Computing mcss similarities.")
+            out = self.path("mcss")
+            if not os.path.exists(out):
+                self.compute_mcss(poses1, poses2, out)
 
     # Methods to calculate features
     def compute_name(self, pv, out):
@@ -201,9 +234,7 @@ class Features:
         with StructureReader(pv) as sts:
             next(sts)
             for st in sts:
-                names += [st.property['s_m_title']]
-                if len(names) == self.max_poses:
-                    break
+                names += [st.property["s_m_title"]]
         np.save(out, names)
 
     def compute_gscore(self, pv, out):
@@ -211,9 +242,7 @@ class Features:
         with StructureReader(pv) as sts:
             next(sts)
             for st in sts:
-                gscores += [st.property['r_i_docking_score']]
-                if len(gscores) == self.max_poses:
-                    break
+                gscores += [st.property["r_i_docking_score"]]
         np.save(out, gscores)
 
     def compute_rmsd(self, pv, native_poses, out):
@@ -221,13 +250,13 @@ class Features:
         with StructureReader(pv) as sts:
             protein = next(sts)
             for st in sts:
-                name = st.property['s_m_title']
+                name = st.property["s_m_title"].split("_lig")[0]
                 if name in native_poses:
                     native = native_poses[name]
                     try:
                         conf_rmsd = ConformerRmsd(native, st).calculate()
                     except:
-                        print(f'RMSD failed for {name}')
+                        print(f"RMSD failed for {name}")
                         conf_rmsd = -1
                 else:
                     conf_rmsd = -1
